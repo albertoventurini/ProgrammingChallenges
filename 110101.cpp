@@ -1,9 +1,13 @@
+// The 3n+1 problem
+
 #include <iostream>
 #include <algorithm>
 
 using namespace std;
 
 
+// Given a cycle starting with i,
+// calculate the cycle length
 unsigned long cycle_length(int i)
 {
     if(i == 1) // base of recursion
@@ -17,6 +21,8 @@ unsigned long cycle_length(int i)
 }
 
 
+// Given two integers a and b,
+// calculate the length of the longest cycle among all cycles between a and b
 unsigned long maximum_cycle_length(int a, int b)
 {
     unsigned long max = 0;

@@ -1,3 +1,10 @@
+// The Erdos number problem
+//
+// This is still giving wrong answer, but I suppose it's some input parsing issue.
+// The algorithm should be working OK.
+//
+// I use a collaboration graph to represent the database of authors and their relationships.
+
 #include <iostream>
 #include <string>
 #include <list>
@@ -13,6 +20,8 @@
 using namespace std;
 
 
+// Given a string s and a list of delimiter characters,
+// break s into substrings separated by delimiters.
 vector<string> tokenize(const string& s, const char *delimiter)
 {
     vector<string> res;
@@ -32,6 +41,7 @@ vector<string> tokenize(const string& s, const char *delimiter)
         res.push_back(s.substr(prev));
     }
     
+    // Remove trailing whitespaces at the beginning of each substring
     for(vector<string>::iterator it = res.begin(); it != res.end(); it++)
     {
         while((*it)[0] == ' ') (*it).erase(0, 1);
@@ -43,15 +53,19 @@ vector<string> tokenize(const string& s, const char *delimiter)
 
 
 ///////////////////////////////////////////////////////////////
-
+// A class for a vertex in the graph
 
 class Vertex
 {
     // A vertex contains a name
     string name;
     
+    // State and distance are needed for breadth-first search
     int state;
     int distance;
+
+    // Adjaciency list for this vertex
+    list<Vertex *> edges;
 
 
 public:
@@ -71,8 +85,9 @@ public:
     int setDistance(int distance) { this->distance = distance; }
     int getDistance() const { return distance; }
     
-    // Adjaciency list for this vertex - we just keep this public...
-    list<Vertex *> edges;
+    // We declare the Graph class friend, because it needs to access
+    // the adjaciency list of each Vertex
+    friend class Graph;
 
 };
 
@@ -88,7 +103,7 @@ void Vertex::addEdge(Vertex *v)
 
 
 ///////////////////////////////////////////////////////////////
-
+// A class for a graph (undirected, unweighted)
 
 class Graph
 {
@@ -134,7 +149,7 @@ Vertex *Graph::findVertex(const string& name) const
 
 void Graph::addVertex(const string& name)
 {
-    if(findVertex(name) == NULL)
+    if(findVertex(name) == NULL) // Add a vertex only if it's not already existing
     {
         Vertex *v = new Vertex(name);
         vertices.push_back(v);    
@@ -160,6 +175,7 @@ void Graph::addEdge(const string& name1, const string& name2)
 }
 
 
+// Standard breadth-first search algorithm
 void Graph::BFS(const string& rootName)
 {
     Vertex *root = NULL;
@@ -220,7 +236,7 @@ void Graph::BFS(const string& rootName)
 
 
 ///////////////////////////////////////////////////////////////
-
+// A class representing a single paper
 
 class Paper
 {
@@ -305,11 +321,11 @@ void Paper::readFromCin()
 
 
 ///////////////////////////////////////////////////////////////
-
+// A class representing a scenario
 
 class Scenario
 {
-    Graph authorsGraph;
+    Graph authorsGraph; // Collaboration graph of authors
     int n_papers;
     int n_queries;
 
@@ -322,6 +338,7 @@ public:
 
 void Scenario::process()
 {
+    // Read the number of papers and queries
     string line;
     getline(cin, line);
     
@@ -330,6 +347,7 @@ void Scenario::process()
     ss >> n_papers;
     ss >> n_queries;
     
+    // Process papers and build the authors graph
     for(int i = 0; i < n_papers; i++)
     {
         Paper p;
@@ -345,8 +363,10 @@ void Scenario::process()
                 if(*it1 != *it2) authorsGraph.addEdge(*it1, *it2);
     }
     
+    // Run BFS on the authors graph
     authorsGraph.BFS("Erdos, P.");
     
+    // Process queries
     for(int i = 0; i < n_queries; i++)
     {
         string query;
@@ -367,7 +387,8 @@ void Scenario::process()
 
 
 int main()
-{    
+{   
+    // Read the number of scenarios in the input
     int n_scenarios;
     
     string line;
@@ -376,6 +397,7 @@ int main()
     stringstream ss(line);    
     ss >> n_scenarios;
     
+    // Process each scenario
     for(int i = 0; i < n_scenarios; i++)
     {      
         cout << "Scenario " << i+1 << endl;
