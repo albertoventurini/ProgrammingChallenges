@@ -240,6 +240,12 @@ void Graph::BFS(const string& rootName)
 
 class Paper
 {
+    // Authors of the paper
+    set<string> authors;
+    
+    // class Scenario is friend because it needs access to the authors data
+    friend class Scenario;
+    
 public:
     Paper() {}
     
@@ -255,7 +261,7 @@ public:
     // Helper method to parse a name from cin
     static bool parseName(string& name);
 
-    set<string> authors;
+
 };
 
 

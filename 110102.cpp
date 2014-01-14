@@ -1,3 +1,5 @@
+// Minesweep problem
+
 #include <iostream>
 #include <vector>
 
