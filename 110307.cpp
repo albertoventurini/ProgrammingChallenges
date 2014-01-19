@@ -68,7 +68,7 @@ class Graph
 
 public:
     Graph() {}
-    ~Graph() {}
+    ~Graph() { for(auto& it : words) delete it.second; }
     
     Vertex* newVertex(const string& w, bool sentinel);
     Vertex* findVertex(const string& w) const;
