@@ -1,3 +1,23 @@
+// This solves the Doublets problem on the UVa Online Judge (http://uva.onlinejudge.org/)
+// It doesn't solve the same problem on the programming-challenges.com website, because that judge has a known bug.
+//
+// The problem is solved by creating a graph of words, then running an A* search on it.
+//
+// The graph of words if built such that each doublet is connected.
+// Moreover, I have used 'sentinel' vertices. For example, the word 'booster' has the following sentinels:
+//   - *ooster
+//   - b*oster
+//   - bo*ster
+//   - boo*ter
+//   - boos*er
+//   - boost*r
+//   - booste*
+//
+// Therefore, doublets share sentinels.
+// I exploit this topography to build the graph rapidly: when a word 'w' is inserted,
+// I generate its sentinels and search for them in the graph; each sentinel's neighbors
+// will be w's neighbors (and vice versa).
+
 #include <iostream>
 #include <list>
 #include <map>
@@ -10,6 +30,7 @@
 
 
 using namespace std;
+
 
 
 class Vertex
@@ -29,8 +50,9 @@ public:
     list<string> neighborWords()
     {
         list<string> result;
-        for(list<Vertex *>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
-            result.push_back( (*it)->word );
+
+        for(auto& w : neighbors)
+            result.push_back(w->word);
         
         return result;
     }
@@ -91,7 +113,8 @@ Vertex *Graph::newVertex(const string& word, bool sentinel)
 // Returns the vertex corresponding to the given word
 Vertex* Graph::findVertex(const string& word) const
 {
-    map<string, Vertex *>::const_iterator it = words.find(word);
+    // Gets an iterator to the word
+    auto it = words.find(word);
     
     // If the word was not found, return NULL
     if(it == words.end())
@@ -122,199 +145,31 @@ void Graph::insertWord(const string& word)
     // If the vertex already exists in the graph, there's nothing else to do
     if(findVertex(word) != NULL) return;
     
+    // Create a new vertex for the given word
     Vertex *v = newVertex(word, false);
     
+    // Calculates all sentinels for the given word
     vector<string> sentinels = calcSentinels(word);
-    
-    for(vector<string>::iterator it = sentinels.begin(); it != sentinels.end(); it++)
+      
+    // Now we need to update the graph in the following way:
+    //   - for each sentinel word, find the corresponding vertex 'sent_vertex' (or create a new one if it doesn't already exist)
+    //   - set the new vertex 'v' as a neighbor of each sent_vertex's neighbor (and vice versa)
+    //   - set the new vertex 'v' as a neighbor of sent_vertex
+    for(auto& sentinel : sentinels)
     {
-        Vertex *sent = findVertex(*it);
-        if(sent == NULL) sent = newVertex(*it, true);
-        
-        for(list<Vertex *>::iterator n = sent->neighbors.begin(); n != sent->neighbors.end(); n++)
+        Vertex *sent_vertex = findVertex(sentinel);
+        if(sent_vertex == NULL) sent_vertex = newVertex(sentinel, true);
+
+        for(auto& sent_neighbor : sent_vertex->neighbors)
         {
-            v->neighbors.push_back(*n);
-            (*n)->neighbors.push_back(v);
+            v->neighbors.push_back(sent_neighbor);
+            sent_neighbor->neighbors.push_back(v);
         }
         
-        sent->neighbors.push_back(v);
+        sent_vertex->neighbors.push_back(v);
     }
-    
 }
 
-
-/*
-void Graph::query(const string& source, const string& target)
-{   
-    if(findVertex(source) == NULL || findVertex(target) == NULL)
-    {
-        cout << "No solution." << endl;
-        return;
-    }
-    
-    if(source == target)
-    {
-        cout << source << endl;
-        return;
-    }
- 
-    list<string> solution;
-    solution.push_back(source);
-    
-    string current(source);
-    
-    int oldMin = INT_MAX;
-    Vertex *v;
-    
-    set<string> visited;
-    visited.insert(current);
-    
-    while(true)
-    {
-        cout << "===> " << current << endl;
-        
-        v = findVertex(current);
-        
-        list<string> nWords = v->neighborWords();
-        
-        int min = INT_MAX;
-        string minString;
-        
-        for(list<string>::iterator it = nWords.begin(); it != nWords.end(); it++)
-        {
-            if( visited.find(*it) == visited.end() )
-            {
-                int h = hamming(target, *it);
-                if(h < min)
-                {
-                    min = h;
-                    minString = *it;
-                }
-            }
-        }
-        
-        if(min == INT_MAX)
-        {
-            cout << "No solution." << endl;
-            return;
-        }
-        
-        //if(oldMin != INT_MAX && oldMin <= min)
-        //{
-        //    cout << "No solution." << endl;
-        //    return;
-        //}
-        
-        if( find(solution.begin(), solution.end(), minString) != solution.end() )
-        {
-            cout << "No solution." << endl;
-            return;            
-        }
-        
-        oldMin = min;
-
-        current = minString;
-        solution.push_back(current);
-        visited.insert(current);
-        
-        if(minString == target) break;
-    }
-    
-    for(list<string>::iterator it = solution.begin(); it != solution.end(); it++)
-        cout << *it << endl;  
-}
-
-*/
-
-
-/*
-bool Graph::queryRecursive(const string& source, const string& target, list<string>& solution, set<string>& visited)
-{
-    if(source == target) return true;
-    
-    Vertex *v = findVertex(source);
-    
-    list<string> nWords = v->neighborWords();
-    list<string> sortedWords;
-    
-    while(nWords.size() != 0)
-    {
-        int min = INT_MAX;
-        list<string>::iterator minString = nWords.begin();
-        
-        for(list<string>::iterator it = nWords.begin(); it != nWords.end(); it++)
-        {           
-            int h = hamming(target, *it);
-            if(h < min)
-            {
-                min = h;
-                minString = it;
-            }
-        }
-        
-        sortedWords.push_back(*minString);
-        nWords.erase(minString);
-    }
-
-    while(sortedWords.size() != 0)
-    {
-        string next = sortedWords.front();
-        sortedWords.pop_front();
-        
-        if(visited.find(next) == visited.end())
-        {   
-            visited.insert(next);
-                 
-            if(queryRecursive(next, target, solution, visited))
-            {
-                solution.push_front(next);
-                return true;
-            }
-        }
-    }
-    
-    return false;
-}
-
-
-
-void Graph::query(const string& source, const string& target)
-{
-    if(source == target)
-    {
-        cout << source << endl;
-        return;
-    }
-    
-    if(source.length() != target.length())
-    {
-        cout << "No solution." << endl;
-        return;
-    }
-    
-    if(findVertex(source) == NULL || findVertex(target) == NULL)
-    {
-        cout << "No solution." << endl;
-        return;
-    }
-    
-    list<string> solution;
-    set<string> visited;
-    visited.insert(source);
-    
-    if(queryRecursive(source, target, solution, visited))
-    {
-        solution.push_front(source);
-        
-        for(list<string>::iterator it = solution.begin(); it != solution.end(); it++)
-            cout << *it << endl;
-    }
-    else
-        cout << "No solution." << endl;
- 
-}
-
-*/
 
 
 struct CompareSecond
@@ -326,7 +181,10 @@ struct CompareSecond
 };
 
 
-
+// Standard A* search (see Wikipedia for pseudocode).
+// The cost function f is given by the following two components:
+//   - g = number of steps from the source to the current vertex
+//   - h = hamming distance from the current vertex to the target
 void Graph::Astar(const string& source, const string& target)
 {   
     if(findVertex(source) == NULL || findVertex(target) == NULL)
@@ -341,26 +199,32 @@ void Graph::Astar(const string& source, const string& target)
         return;
     }
     
+    // 'closedset' contains the strings (i.e. vertices) that have already been processed in the search
+    // (it's just handier for me to keep the strings rather than Vertex objects)
     set<string> closedset;
     
+    // 'came_from' maps the search path which will be reconstructed at the end
     map<string, string> came_from;
     
+    // 'g_score' contains the minimum g score for each word throughout the search
     map<string, int> g_score;
-    g_score.insert(pair<string, int>(source, 0));
-    
-    map<string, int> f_score;
-    f_score.insert(pair<string, int>(source, g_score[source] + hamming(source, target)));
+    g_score[source] = 0; // The g score of the source is obviously 0
 
+    // 'openset' contains the list of nodes that need to be processed next.
+    // It is an associative array because each node (string) is associated to an f score.
+    // At each iteration of the A* search, we will pick the node with the lowest f score for processing.
+    // It should be a priority queue, not a map... but I just iterate through it each time to find the minimum element.
     map<string, int> openset;
-    openset.insert(pair<string, int>(source, f_score[source]));
+    openset[source] = g_score[source] + hamming(source, target);
     
     while(!openset.empty())
     {
-        map<string, int>::iterator min = min_element(openset.begin(), openset.end(), CompareSecond());
+        // Find the next string (vertex) to be processed, i.e. the vertex in openset with lowest f score
+        auto min = min_element(openset.begin(), openset.end(), CompareSecond());
+        
         string current = min->first;
         
-        //cout << "===> " << current << " " << openset[current] << endl;
-        
+        // If current == target, we have finished
         if(current == target)
         {
             Astar_print_path(came_from, current);
@@ -373,22 +237,23 @@ void Graph::Astar(const string& source, const string& target)
         Vertex *v = findVertex(current);
         list<string> nWords = v->neighborWords();
         
-        for(list<string>::iterator it = nWords.begin(); it != nWords.end(); it++)
+        for(auto& neighbor : v->neighborWords())
         {
-            if(closedset.find(*it) != closedset.end()) continue;
+            // If we have already processed this neighbor, skip it (we don't want to go back to it)
+            if(closedset.find(neighbor) != closedset.end()) continue;
             
             int g = g_score[current] + 1;
-            int h = hamming(*it, target);
+            int h = hamming(neighbor, target);
             
-            if(openset.find(*it) == openset.end() || g < g_score[*it])
+            if(openset.find(neighbor) == openset.end() || g < g_score[neighbor])
             {
-                came_from[*it] = current;
-                g_score[*it] = g;
-                
-                //if(openset[*it] == openset.end()) openset.insert(pair<string, int>(*it, g + h));
-                if(openset.find(*it) == openset.end()) openset[*it] = g + h;
+                came_from[neighbor] = current;
+                g_score[neighbor] = g;
+
+                if(openset.find(neighbor) == openset.end()) openset[neighbor] = g + h;
             }
         }
+        
     }
     
     cout << "No solution." << endl;
@@ -422,9 +287,7 @@ int main()
         if(line.length() == 0) break;
         g.insertWord(line);
     }
-    
-    //g.Astar("whiner", "header");
-    
+
     string source, target;
     int count = 0;
     
@@ -438,26 +301,9 @@ int main()
 
         source = line.substr(0, line.find(' '));
         target = line.substr(line.find(' ') + 1);
-        
-        //g.query(source, target);
+
         g.Astar(source, target);
     }
-    
-    
-    /*
-    
-    Vertex *v = g.findVertex("blabla");
-    
-    g.insertWord("Boaster");
-    g.insertWord("Coaster");
-    g.insertWord("Roaster");
-    g.insertWord("Roasted");
-    g.insertWord("Booster");
-    g.insertWord("Coasted");
-    g.insertWord("Roosted");
-    g.insertWord("Raastid");
-    
-    g.query("Booster", "Roasted");*/
     
     return 0;
 }
