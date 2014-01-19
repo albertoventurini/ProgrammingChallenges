@@ -3,7 +3,7 @@
 //
 // The problem is solved by creating a graph of words, then running an A* search on it.
 //
-// The graph of words if built such that each doublet is connected.
+// The graph of words is built such that each doublet is connected.
 // Moreover, I have used 'sentinel' vertices. For example, the word 'booster' has the following sentinels:
 //   - *ooster
 //   - b*oster
@@ -14,9 +14,11 @@
 //   - booste*
 //
 // Therefore, doublets share sentinels.
+//
 // I exploit this topography to build the graph rapidly: when a word 'w' is inserted,
 // I generate its sentinels and search for them in the graph; each sentinel's neighbors
 // will be w's neighbors (and vice versa).
+//
 
 #include <iostream>
 #include <list>
@@ -77,16 +79,13 @@ public:
     bool findWord();
     
     int hamming(const string& w1, const string& w2);
-    
-    void query(const string& source, const string& target);
-    bool queryRecursive(const string& source, const string& target, list<string>& solution, set<string>& visited);
 
     void Astar(const string& source, const string& target);
     void Astar_print_path(map<string, string> came_from, string current);
 };
 
 
-// Counts the number of letters that are the same in the two words
+// Counts the number of letters that are different in the two words
 int Graph::hamming(const string& w1, const string& w2)
 {
     if(w1.length() != w2.length()) return INT_MAX;
