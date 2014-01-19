@@ -51,8 +51,8 @@ public:
     {
         list<string> result;
 
-        for(auto& w : neighbors)
-            result.push_back(w->word);
+        for(Vertex *n : neighbors)
+            result.push_back(n->word);
         
         return result;
     }
@@ -155,12 +155,12 @@ void Graph::insertWord(const string& word)
     //   - for each sentinel word, find the corresponding vertex 'sent_vertex' (or create a new one if it doesn't already exist)
     //   - set the new vertex 'v' as a neighbor of each sent_vertex's neighbor (and vice versa)
     //   - set the new vertex 'v' as a neighbor of sent_vertex
-    for(auto& sentinel : sentinels)
+    for(string& sentinel : sentinels)
     {
         Vertex *sent_vertex = findVertex(sentinel);
         if(sent_vertex == NULL) sent_vertex = newVertex(sentinel, true);
 
-        for(auto& sent_neighbor : sent_vertex->neighbors)
+        for(Vertex *sent_neighbor : sent_vertex->neighbors)
         {
             v->neighbors.push_back(sent_neighbor);
             sent_neighbor->neighbors.push_back(v);
@@ -235,9 +235,8 @@ void Graph::Astar(const string& source, const string& target)
         openset.erase(min);
         
         Vertex *v = findVertex(current);
-        list<string> nWords = v->neighborWords();
-        
-        for(auto& neighbor : v->neighborWords())
+
+        for(string& neighbor : v->neighborWords())
         {
             // If we have already processed this neighbor, skip it (we don't want to go back to it)
             if(closedset.find(neighbor) != closedset.end()) continue;
